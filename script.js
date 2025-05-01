@@ -3,6 +3,7 @@ document.addEventListener("DOMContentLoaded", function () {
     
     const submitButton = document.querySelector('#submitButton');
     const responseField = document.querySelector('#responseField');
+    let fuzzyChars = [];
 
     //Fetch data from Datamuse API and extract as a JSON
     const getSuggestions = async (query) => {
@@ -48,11 +49,15 @@ document.addEventListener("DOMContentLoaded", function () {
         for(let i = 0; i < wordObj.length; i++){
             if(wordObj[i].color == 'green'){
                 formWordArr.push(wordObj[i].char);
-            } else{
+            } else if(wordObj[i].color == 'yellow'){
+                fuzzyChars.push(wordObj[i].char);
+                formWordArr.push('?');
+            }else { 
                 formWordArr.push('?');
             }
         }
             console.log(formWordArr);
+            console.log(fuzzyChars);
 
         while(responseField.firstChild){
             responseField.removeChild(responseField.firstChild);
@@ -61,7 +66,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
 
-    //Formatting Datamuse JSON to the responseField
     const renderWordResponse = (res) => {
         if(!res){
             console.log(res.status);
@@ -72,9 +76,27 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
     
+        // Filter results to only include words that contain ALL the fuzzy characters
+        let filteredResults = res;
+        
+        if(fuzzyChars.length > 0) {
+            filteredResults = res.filter(item => {
+                // Check if the word includes all characters in fuzzyChars
+                return fuzzyChars.every(char => item.word.includes(char));
+            });
+            
+            console.log("Filtered results:", filteredResults);
+            
+            // If no words match our fuzzy filters, fall back to the original results
+            if(filteredResults.length === 0) {
+                console.log("No matches with fuzzy filters, showing all results");
+                filteredResults = res;
+            }
+        }
+
         let wordList = [];
-        for(let i = 0; i < Math.min(res.length, 10); i++){
-            wordList.push(`<li>${res[i].word}</li>`);
+        for(let i = 0; i < Math.min(filteredResults.length, 10); i++){            
+            wordList.push(`<li>${filteredResults[i].word}</li>`);
         }
         wordList = wordList.join("");
     
@@ -82,7 +104,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     submitButton.addEventListener('click', displaySuggestions);
-    });
+});
 
    
     
